@@ -35,6 +35,10 @@ export const categories = {
   list: () => api('/categories'),
 };
 
+export const stripe = {
+  checkout: (plan) => api('/stripe/create-checkout', { method: 'POST', body: JSON.stringify({ plan }) }),
+};
+
 export function setToken(t) { localStorage.setItem('cwc_token', t); }
 export function clearToken() { localStorage.removeItem('cwc_token'); }
 export function isLoggedIn() { return !!getToken(); }

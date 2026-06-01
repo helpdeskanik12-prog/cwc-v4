@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CINEWORLD — Stream Movies & Clips</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{background:#141414;color:#e5e5e5;font-family:system-ui,-apple-system,sans-serif;min-height:100vh}
+a{color:inherit;text-decoration:none}
+button{cursor:pointer;font:inherit}
+input,select,textarea{font:inherit;outline:none}
+.hidden{display:none!important}
+
+/* Nav */
+#nav{position:fixed;top:0;width:100%;z-index:50;background:linear-gradient(to bottom,rgba(0,0,0,.9),transparent);padding:16px 24px;display:flex;align-items:center;justify-content:space-between;transition:background .3s}
+#nav.scrolled{background:rgba(20,20,20,.98)}
+#nav-brand{color:#e50914;font-size:1.6rem;font-weight:800;letter-spacing:-1px}
+#nav-links{display:flex;align-items:center;gap:20px}
+#nav-links a,#nav-links button{font-size:.875rem;transition:color .2s}
+#nav-links a:hover{color:#fff}
+#nav-right{display:flex;align-items:center;gap:12px}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;padding:8px 20px;border-radius:6px;font-size:.875rem;font-weight:600;border:none;transition:all .2s}
+.btn-red{background:#e50914;color:#fff}
+.btn-red:hover{background:#f40612}
+.btn-ghost{background:transparent;color:#999}
+.btn-ghost:hover{color:#fff}
+.btn-outline{border:1px solid #444;background:transparent;color:#ccc}
+.btn-outline:hover{border-color:#888;color:#fff}
+.btn-green{background:#16a34a;color:#fff}
+.btn-green:hover{background:#15803d}
+.btn:disabled{opacity:.5;pointer-events:none}
+
+/* Main */
+#main{padding-top:72px;min-height:100vh}
+
+/* Card Grid */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:16px}
+.card{transition:transform .2s}
+.card:hover{transform:translateY(-4px)}
+.card-img{aspect-ratio:2/3;background:#1f1f1f;border-radius:8px;overflow:hidden;position:relative}
+.card-img img{width:100%;height:100%;object-fit:cover;transition:transform .3s}
+.card:hover .card-img img{transform:scale(1.05)}
+.card-title{margin-top:8px;font-size:.8125rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card-meta{font-size:.75rem;color:#666;margin-top:2px}
+.badge{position:absolute;font-size:.625rem;background:rgba(0,0,0,.75);padding:2px 6px;border-radius:3px;text-transform:uppercase}
+.badge-top-left{top:6px;left:6px}
+.badge-bottom-right{bottom:6px;right:6px}
+
+/* Hero */
+.hero{position:relative;aspect-ratio:16/9;max-height:70vh}
+.hero img{width:100%;height:100%;object-fit:cover}
+.hero-overlay{position:absolute;bottom:0;left:0;right:0;padding:48px 24px 24px;background:linear-gradient(transparent,rgba(20,20,20,.9),#141414)}
+.hero-title{font-size:2.5rem;font-weight:800}
+.hero-desc{color:#999;margin-top:8px;max-width:600px;line-height:1.6}
+.hero-meta{display:flex;gap:12px;margin-top:12px;color:#999;font-size:.875rem}
+
+/* Forms */
+.form-card{max-width:420px;margin:40px auto;background:#1f1f1f;border-radius:12px;padding:32px}
+.form-card h2{margin-bottom:24px;font-size:1.5rem;text-align:center}
+.form-group{margin-bottom:16px}
+.form-group label{display:block;font-size:.8125rem;color:#888;margin-bottom:4px}
+.form-group input,.form-group select,.form-group textarea{width:100%;background:#333;border:1px solid #444;border-radius:6px;padding:10px 14px;color:#fff;font-size:.9375rem;transition:border-color .2s}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:#e50914}
+.error-box{background:rgba(229,9,20,.1);border:1px solid rgba(229,9,20,.3);color:#f87171;padding:12px;border-radius:6px;font-size:.8125rem;margin-bottom:16px}
+
+/* Admin Tables */
+.table-wrap{overflow-x:auto;background:#1f1f1f;border-radius:12px}
+table{width:100%;font-size:.8125rem;border-collapse:collapse}
+th{text-align:left;color:#888;font-weight:600;padding:12px 16px;border-bottom:1px solid #333}
+td{padding:12px 16px;border-bottom:1px solid #252525}
+tr:hover td{background:#282828}
+.status-active{color:#4ade80}
+.status-banned{color:#f87171}
+.role-badge{padding:2px 8px;border-radius:9999px;font-size:.6875rem;font-weight:600}
+.role-admin{background:rgba(229,9,20,.2);color:#f87171}
+.role-user{background:rgba(59,130,246,.2);color:#60a5fa}
+.role-premium{background:rgba(245,158,11,.2);color:#fbbf24}
+
+/* Stats */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:16px;margin-bottom:32px}
+.stat-card{background:#1f1f1f;border-radius:12px;padding:20px;text-align:center}
+.stat-value{font-size:2rem;font-weight:800}
+.stat-label{font-size:.75rem;color:#888;margin-top:4px}
+
+/* Premium Plans */
+.plans{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:24px;max-width:800px;margin:0 auto}
+.plan-card{background:#1f1f1f;border-radius:16px;padding:32px;border:2px solid transparent;position:relative}
+.plan-card.popular{border-color:#e50914}
+.plan-badge{position:absolute;top:-28px;left:50%;transform:translateX(-50%);background:#e50914;color:#fff;padding:4px 16px;border-radius:9999px;font-size:.75rem;font-weight:700;text-transform:uppercase}
+.plan-name{font-size:1.25rem;font-weight:700;margin-bottom:8px}
+.plan-price{font-size:3rem;font-weight:800;margin-bottom:4px}
+.plan-period{color:#888;font-size:.875rem;margin-bottom:24px}
+.plan-features{list-style:none;margin-bottom:24px}
+.plan-features li{padding:6px 0;font-size:.875rem;color:#aaa;display:flex;align-items:center;gap:8px}
+.plan-features li::before{content:'✓';color:#22c55e}
+
+/* Search bar */
+.search-bar{display:flex;gap:12px;max-width:640px;margin:0 auto 32px}
+.search-bar input{flex:1;background:#1f1f1f;border:1px solid #333;border-radius:10px;padding:12px 16px;color:#fff;font-size:.9375rem}
+.search-bar input:focus{border-color:#e50914}
+.search-bar select{background:#1f1f1f;border:1px solid #333;border-radius:10px;padding:12px;color:#fff;font-size:.875rem}
+
+/* Video player */
+.video-container{aspect-ratio:16/9;background:#000;border-radius:12px;overflow:hidden;margin:24px 0}
+.video-container iframe{width:100%;height:100%}
+
+/* Page container */
+.container{max-width:1400px;margin:0 auto;padding:24px}
+.section-title{font-size:1.75rem;font-weight:700;margin-bottom:24px}
+
+/* Loading */
+.spinner{width:24px;height:24px;border:2px solid #333;border-top-color:#e50914;border-radius:50%;animation:spin .6s linear infinite;margin:40px auto}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Responsive */
+@media(max-width:600px){
+  #nav{padding:12px 16px}
+  #nav-brand{font-size:1.25rem}
+  #nav-links{gap:12px}
+  .grid{grid-template-columns:repeat(2,1fr)}
+  .hero-title{font-size:1.5rem}
+  .container{padding:16px}
+  .plans{grid-template-columns:1fr}
+}
+
+/* Tabs */
+.tabs{display:flex;gap:0;margin-bottom:24px;border-bottom:2px solid #333}
+.tab{padding:10px 20px;font-size:.875rem;background:0;border:0;color:#888;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .2s}
+.tab.active{color:#fff;border-bottom-color:#e50914}
+
+/* Empty state */
+.empty{text-align:center;color:#666;padding:60px 20px}
+.empty-icon{font-size:3rem;margin-bottom:16px}
+</style>
+</head>
+<body>
+
+<nav id="nav">
+  <a href="#/" class="nav-brand" id="nav-brand">CINEWORLD</a>
+  <div id="nav-links">
+    <a href="#/">Home</a>
+    <a href="#/premium" style="color:#f59e0b">Premium</a>
+  </div>
+  <div id="nav-right"></div>
+</nav>
+
+<div id="main"></div>
+
+<script>
+// ═══════════════════ API Client ═══════════════════
+const BASE = '/api';
+const gToken = () => localStorage.getItem('cwc_token');
+const sToken = (t) => localStorage.setItem('cwc_token', t);
+const cToken = () => localStorage.removeItem('cwc_token');
+const loggedIn = () => !!gToken();
+
+async function api(endpoint, opts = {}) {
+  const headers = { 'Content-Type': 'application/json', ...opts.headers };
+  const token = gToken();
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  const res = await fetch(BASE + endpoint, { ...opts, headers });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Request failed');
+  return data;
+}
+
+const A = {
+  register: (b) => api('/auth/register', { method: 'POST', body: JSON.stringify(b) }),
+  login: (b) => api('/auth/login', { method: 'POST', body: JSON.stringify(b) }),
+  me: () => api('/auth/me'),
+  movies: {
+    list: (p = {}) => api(`/movies?${new URLSearchParams(p)}`),
+    get: (id) => api(`/movies/${id}`),
+    create: (b) => api('/movies', { method: 'POST', body: JSON.stringify(b) }),
+    update: (id, b) => api(`/movies/${id}`, { method: 'PATCH', body: JSON.stringify(b) }),
+    delete: (id) => api(`/movies/${id}`, { method: 'DELETE' }),
+  },
+  admin: {
+    dashboard: () => api('/admin/dashboard'),
+    users: () => api('/admin/users'),
+  },
+  categories: {
+    list: () => api('/categories'),
+  },
+  stripe: {
+    checkout: (plan) => api('/stripe/create-checkout', { method: 'POST', body: JSON.stringify({ plan }) }),
+  },
+};
+
+// ═══════════════════ Auth State ═══════════════════
+let user = null;
+async function loadUser() {
+  if (!loggedIn()) { user = null; return; }
+  try { const d = await A.me(); user = d.user; } catch { cToken(); user = null; }
+}
+async function loginUser(email, password, isRegister, username, displayName) {
+  const d = isRegister
+    ? await A.register({ email, username, password, displayName })
+    : await A.login({ email, password });
+  sToken(d.accessToken);
+  user = d.user;
+  return d;
+}
+function logout() { cToken(); user = null; }
+
+// ═══════════════════ Router ═══════════════════
+function route() {
+  const hash = window.location.hash.slice(1) || '/';
+  const [path, qs] = hash.split('?');
+  const params = new URLSearchParams(qs || '');
+
+  const segments = path.split('/').filter(Boolean);
+  const page = segments[0] || 'home';
+  const id = segments[1];
+
+  const nav = document.getElementById('nav');
+  const navLinks = document.getElementById('nav-links');
+  const navRight = document.getElementById('nav-right');
+  const main = document.getElementById('main');
+
+  // Scroll effect
+  window.onscroll = () => nav.classList.toggle('scrolled', window.scrollY > 50);
+
+  // Nav links
+  navLinks.innerHTML = `
+    <a href="#/">Home</a>
+    <a href="#/premium" style="color:#f59e0b">Premium</a>
+    ${user?.role === 'superadmin' ? '<a href="#/admin">Admin</a>' : ''}
+  `;
+
+  // Nav right (auth)
+  if (user) {
+    navRight.innerHTML = `
+      <a href="#/profile" style="font-size:.875rem;color:#ccc">${H(user.displayName || user.username)}</a>
+      <button onclick="doLogout()" class="btn btn-ghost" style="font-size:.75rem">Logout</button>
+    `;
+  } else {
+    navRight.innerHTML = `
+      <a href="#/login" class="btn btn-ghost">Login</a>
+      <a href="#/register" class="btn btn-red">Sign Up</a>
+    `;
+  }
+
+  // Routes
+  if (page === 'home' || !page) renderHome(params, main);
+  else if (page === 'movie' && id) renderMovie(id, main);
+  else if (page === 'login') renderLogin(main);
+  else if (page === 'register') renderRegister(main);
+  else if (page === 'profile') renderProfile(main);
+  else if (page === 'admin') renderAdmin(main);
+  else if (page === 'premium') renderPremium(main);
+  else main.innerHTML = '<div class="container"><div class="empty"><div class="empty-icon">404</div><p>Page not found</p></div></div>';
+}
+
+function H(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+function doLogout() { logout(); window.location.hash = '/'; }
+
+// ═══════════════════ Pages ═══════════════════
+
+// ── HOME ──
+let homeMovies = [], homePage = 1, homeSearch = '', homeRegion = '';
+
+function renderHome(params, el) {
+  homeSearch = params.get('search') || '';
+  homeRegion = params.get('region') || '';
+  el.innerHTML = `
+    <div class="container">
+      <form class="search-bar" onsubmit="handleHomeSearch(event)">
+        <input type="text" id="home-search" value="${H(homeSearch)}" placeholder="Search movies...">
+        <select id="home-region">
+          <option value="">All Regions</option>
+          <option value="hollywood" ${homeRegion==='hollywood'?'selected':''}>Hollywood</option>
+          <option value="bollywood" ${homeRegion==='bollywood'?'selected':''}>Bollywood</option>
+          <option value="south" ${homeRegion==='south'?'selected':''}>South Indian</option>
+          <option value="anime" ${homeRegion==='anime'?'selected':''}>Anime</option>
+          <option value="bengali" ${homeRegion==='bengali'?'selected':''}>Bengali</option>
+        </select>
+        <button class="btn btn-red" style="padding:12px 24px">Search</button>
+      </form>
+      <div id="home-content"><div class="spinner"></div></div>
+    </div>
+  `;
+  loadHome();
+}
+
+async function loadHome(page = 1) {
+  homePage = page;
+  const params = { limit: 24, page };
+  if (homeSearch) params.search = homeSearch;
+  if (homeRegion) params.region = homeRegion;
+  try {
+    const d = await A.movies.list(params);
+    homeMovies = d.movies || [];
+    const total = d.total || 0;
+    let html = '';
+    if (homeSearch) html += `<div class="section-title">Search results for "${H(homeSearch)}"</div>`;
+    else if (homeRegion) html += `<div class="section-title" style="text-transform:capitalize">${homeRegion} Movies</div>`;
+    else html += `<div class="section-title">Trending Movies</div>`;
+
+    if (homeMovies.length === 0) {
+      html += '<div class="empty"><div class="empty-icon">🎬</div><p>No movies found</p></div>';
+    } else {
+      html += '<div class="grid">';
+      homeMovies.forEach(m => {
+        html += `<a href="#/movie/${m.slug||m.id}" class="card">
+          <div class="card-img">
+            ${m.thumbnail
+              ? `<img src="${H(m.thumbnail)}" alt="${H(m.title)}" loading="lazy">`
+              : `<div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:2rem;color:#444">🎬</div>`}
+            ${m.region ? `<span class="badge badge-top-left">${H(m.region)}</span>` : ''}
+            ${m.duration > 0 ? `<span class="badge badge-bottom-right">${Math.floor(m.duration/60)}m</span>` : ''}
+          </div>
+          <div class="card-title">${H(m.title)}</div>
+          ${m.category ? `<div class="card-meta">${H(m.category)}</div>` : ''}
+        </a>`;
+      });
+      html += '</div>';
+      if (total > 24) {
+        html += `<div style="text-align:center;margin-top:32px;display:flex;justify-content:center;gap:16px">
+          <button class="btn btn-outline" ${page<=1?'disabled':''} onclick="loadHome(${page-1})">Previous</button>
+          <span style="font-size:.875rem;color:#888;line-height:2.5">Page ${page}</span>
+          <button class="btn btn-outline" ${page*24>=total?'disabled':''} onclick="loadHome(${page+1})">Next</button>
+        </div>`;
+      }
+    }
+    document.getElementById('home-content').innerHTML = html;
+  } catch (e) {
+    document.getElementById('home-content').innerHTML = `<div class="empty"><p>Failed to load movies</p></div>`;
+    console.error(e);
+  }
+}
+
+function handleHomeSearch(e) {
+  e.preventDefault();
+  const q = document.getElementById('home-search').value;
+  const r = document.getElementById('home-region').value;
+  const p = new URLSearchParams();
+  if (q) p.set('search', q);
+  if (r) p.set('region', r);
+  window.location.hash = p.toString() ? `/?${p}` : '/';
+}
+
+// ── MOVIE DETAIL ──
+async function renderMovie(id, el) {
+  el.innerHTML = '<div class="container"><div class="spinner"></div></div>';
+  try {
+    const d = await A.movies.get(id);
+    const m = d.movie;
+    if (!m) { el.innerHTML = '<div class="container"><div class="empty"><div class="empty-icon">404</div><p>Movie not found</p></div></div>'; return; }
+
+    el.innerHTML = `
+      <div class="container" style="max-width:1100px">
+        <h1 style="font-size:2.5rem;font-weight:800;margin-bottom:8px">${H(m.title)}</h1>
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:24px">
+          ${m.category ? `<span style="background:#e50914;padding:4px 10px;border-radius:4px;font-size:.75rem">${H(m.category)}</span>` : ''}
+          <span style="color:#888;font-size:.875rem;text-transform:uppercase">${H(m.region || 'N/A')}</span>
+        </div>
+        <div class="video-container">
+          ${m.videoUrl
+            ? `<iframe src="${H(m.videoUrl)}" allowfullscreen allow="autoplay;encrypted-media" style="width:100%;height:100%;border:0"></iframe>`
+            : '<div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:6rem;color:#333">🎬</div>'}
+        </div>
+        ${m.description ? `<p style="color:#999;line-height:1.7;margin-top:24px;max-width:800px">${H(m.description)}</p>` : ''}
+        <div style="display:flex;gap:24px;margin-top:16px;color:#666;font-size:.875rem">
+          ${m.duration > 0 ? `<span>Duration: ${Math.floor(m.duration/60)}m ${m.duration%60}s</span>` : ''}
+          <span>Views: ${m.views||0}</span>
+          <span>Rating: ${m.rating||'N/A'}</span>
+        </div>
+        <a href="#/" style="display:inline-block;margin-top:32px;color:#e50914">← Back to Home</a>
+      </div>
+    `;
+  } catch (e) {
+    el.innerHTML = `<div class="container"><div class="empty"><p>Failed to load movie: ${H(e.message)}</p></div></div>`;
+  }
+}
+
+// ── LOGIN ──
+function renderLogin(el) {
+  el.innerHTML = `
+    <div class="form-card">
+      <h2>Sign In</h2>
+      <div id="login-error" class="error-box hidden"></div>
+      <form onsubmit="handleLogin(event)">
+        <div class="form-group"><label>Email</label><input type="email" id="login-email" placeholder="you@email.com" required></div>
+        <div class="form-group"><label>Password</label><input type="password" id="login-password" placeholder="••••••••" required></div>
+        <button type="submit" class="btn btn-red" style="width:100%;padding:12px">Sign In</button>
+      </form>
+      <p style="text-align:center;margin-top:16px;font-size:.8125rem;color:#666">
+        Don't have an account? <a href="#/register" style="color:#e50914">Sign Up</a>
+      </p>
+    </div>
+  `;
+}
+
+async function handleLogin(e) {
+  e.preventDefault();
+  const email = document.getElementById('login-email').value;
+  const password = document.getElementById('login-password').value;
+  const errEl = document.getElementById('login-error');
+  try {
+    await loginUser(email, password, false);
+    window.location.hash = '/';
+  } catch (err) {
+    errEl.textContent = err.message;
+    errEl.classList.remove('hidden');
+  }
+}
+
+// ── REGISTER ──
+function renderRegister(el) {
+  el.innerHTML = `
+    <div class="form-card">
+      <h2>Create Account</h2>
+      <div id="register-error" class="error-box hidden"></div>
+      <form onsubmit="handleRegister(event)">
+        <div class="form-group"><label>Username</label><input type="text" id="reg-username" placeholder="cooluser" required></div>
+        <div class="form-group"><label>Display Name</label><input type="text" id="reg-display" placeholder="Cool User"></div>
+        <div class="form-group"><label>Email</label><input type="email" id="reg-email" placeholder="you@email.com" required></div>
+        <div class="form-group"><label>Password</label><input type="password" id="reg-password" placeholder="Min 6 characters" required minlength="6"></div>
+        <button type="submit" class="btn btn-red" style="width:100%;padding:12px">Create Account</button>
+      </form>
+      <p style="text-align:center;margin-top:16px;font-size:.8125rem;color:#666">
+        Already have an account? <a href="#/login" style="color:#e50914">Sign In</a>
+      </p>
+    </div>
+  `;
+}
+
+async function handleRegister(e) {
+  e.preventDefault();
+  const username = document.getElementById('reg-username').value;
+  const displayName = document.getElementById('reg-display').value;
+  const email = document.getElementById('reg-email').value;
+  const password = document.getElementById('reg-password').value;
+  const errEl = document.getElementById('register-error');
+  try {
+    await loginUser(email, password, true, username, displayName);
+    window.location.hash = '/';
+  } catch (err) {
+    errEl.textContent = err.message;
+    errEl.classList.remove('hidden');
+  }
+}
+
+// ── PROFILE ──
+function renderProfile(el) {
+  if (!user) { window.location.hash = '/login'; return; }
+  el.innerHTML = `
+    <div class="container" style="max-width:600px">
+      <h1 class="section-title">My Profile</h1>
+      <div style="background:#1f1f1f;border-radius:12px;padding:32px">
+        <div style="display:flex;align-items:center;gap:16px;padding-bottom:24px;border-bottom:1px solid #333;margin-bottom:24px">
+          <div style="width:56px;height:56px;background:#e50914;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.5rem;font-weight:800">
+            ${(user.displayName||user.username)[0].toUpperCase()}
+          </div>
+          <div>
+            <div style="font-size:1.25rem;font-weight:700">${H(user.displayName||user.username)}</div>
+            <div style="font-size:.8125rem;color:#888">@${H(user.username)}</div>
+          </div>
+          ${user.role==='superadmin' ? '<span class="role-badge role-admin" style="margin-left:auto">Admin</span>' : user.role==='premium' ? '<span class="role-badge role-premium" style="margin-left:auto">Premium</span>' : ''}
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;font-size:.875rem">
+          <div><span style="color:#888">Email</span><p style="margin-top:4px">${H(user.email)}</p></div>
+          <div><span style="color:#888">Member Since</span><p style="margin-top:4px">${new Date(user.createdAt).toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'})}</p></div>
+          <div><span style="color:#888">Status</span><p style="margin-top:4px">${user.isBanned?'<span class="status-banned">Banned</span>':user.isActive?'<span class="status-active">Active</span>':'Inactive'}</p></div>
+          <div><span style="color:#888">Last Login</span><p style="margin-top:4px">${user.lastLoginAt?new Date(user.lastLoginAt).toLocaleString():'—'}</p></div>
+        </div>
+        <button onclick="doLogout();window.location.hash='/'" class="btn btn-red" style="margin-top:24px">Sign Out</button>
+      </div>
+    </div>
+  `;
+}
+
+// ── ADMIN ──
+function renderAdmin(el) {
+  if (!user || user.role !== 'superadmin') { window.location.hash = '/login'; return; }
+  el.innerHTML = `
+    <div class="container">
+      <h1 class="section-title">Admin Panel</h1>
+      <div class="stats-grid" id="admin-stats">
+        <div class="stat-card"><div class="stat-value" style="color:#60a5fa">—</div><div class="stat-label">Users</div></div>
+        <div class="stat-card"><div class="stat-value" style="color:#4ade80">—</div><div class="stat-label">Movies</div></div>
+        <div class="stat-card"><div class="stat-value" style="color:#c084fc">—</div><div class="stat-label">Categories</div></div>
+      </div>
+      <div id="admin-users-wrap"></div>
+      <div style="height:32px"></div>
+      <div id="admin-movies-wrap"></div>
+    </div>
+  `;
+  A.admin.dashboard().then(d => {
+    const vals = document.querySelectorAll('#admin-stats .stat-value');
+    vals[0].textContent = d.users||0;
+    vals[1].textContent = d.movies||0;
+    vals[2].textContent = d.categories||0;
+  }).catch(() => {});
+  loadAdminUsers();
+  loadAdminMovies();
+}
+
+async function loadAdminUsers() {
+  const el = document.getElementById('admin-users-wrap');
+  try {
+    const d = await A.admin.users();
+    const users = d.users || [];
+    el.innerHTML = `
+      <div style="background:#1f1f1f;border-radius:12px;overflow:hidden">
+        <h3 style="padding:16px;border-bottom:1px solid #333;font-weight:700">Users</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>User</th><th>Email</th><th>Role</th><th>Status</th><th>Joined</th></tr></thead>
+            <tbody>
+              ${users.map(u => `
+                <tr>
+                  <td style="display:flex;align-items:center;gap:8px">
+                    <div style="width:28px;height:28px;background:#e50914;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.6875rem;font-weight:800">
+                      ${(u.displayName||u.username)[0].toUpperCase()}
+                    </div>
+                    ${H(u.displayName||u.username)}
+                  </td>
+                  <td style="color:#888">${H(u.email)}</td>
+                  <td><span class="role-badge ${u.role==='superadmin'?'role-admin':u.role==='premium'?'role-premium':'role-user'}">${H(u.role)}</span></td>
+                  <td>${u.isBanned?'<span class="status-banned">Banned</span>':u.isActive?'<span class="status-active">Active</span>':'Inactive'}</td>
+                  <td style="color:#666">${new Date(u.createdAt).toLocaleDateString()}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  } catch { el.innerHTML = '<div class="empty"><p>Failed to load users</p></div>'; }
+}
+
+// ── ADMIN: Movies ──
+let adminEditId = null;
+
+async function loadAdminMovies() {
+  const el = document.getElementById('admin-movies-wrap');
+  try {
+    const d = await A.movies.list({ limit: 200 });
+    const movies = d.movies || [];
+    el.innerHTML = `
+      <div style="background:#1f1f1f;border-radius:12px;overflow:hidden">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:16px;border-bottom:1px solid #333">
+          <h3 style="font-weight:700">Movies</h3>
+          <button class="btn btn-red btn-sm" onclick="showMovieForm()">+ Add Movie</button>
+        </div>
+        <div id="admin-movie-form" class="hidden" style="padding:16px;border-bottom:1px solid #333"></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Title</th><th>Region</th><th>Category</th><th>Views</th><th>Added</th><th>Actions</th></tr></thead>
+            <tbody>
+              ${movies.map(m => `
+                <tr>
+                  <td><a href="#/movie/${m.slug||m.id}" style="color:#e50914">${H(m.title)}</a></td>
+                  <td style="text-transform:capitalize;color:#888">${H(m.region||'—')}</td>
+                  <td style="color:#888">${H(m.category||'—')}</td>
+                  <td style="color:#888">${m.views||0}</td>
+                  <td style="color:#666">${new Date(m.createdAt).toLocaleDateString()}</td>
+                  <td>
+                    <button class="btn btn-ghost" style="font-size:.75rem;color:#60a5fa" onclick="editMovie(${m.id},${JSON.stringify(H(JSON.stringify(m)))})">Edit</button>
+                    <button class="btn btn-ghost" style="font-size:.75rem;color:#f87171" onclick="deleteMovie(${m.id})">Delete</button>
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+        ${movies.length===0?'<div class="empty"><p>No movies yet</p></div>':''}
+      </div>
+    `;
+  } catch { el.innerHTML = '<div class="empty"><p>Failed to load movies</p></div>'; }
+}
+
+function showMovieForm(movie) {
+  adminEditId = movie ? movie.id : null;
+  const el = document.getElementById('admin-movie-form');
+  el.classList.remove('hidden');
+  el.innerHTML = `
+    <form onsubmit="handleMovieSave(event)" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="form-group"><label>Title *</label><input id="mf-title" value="${H(movie?.title||'')}" required></div>
+      <div class="form-group"><label>Slug</label><input id="mf-slug" value="${H(movie?.slug||'')}" placeholder="auto-generated"></div>
+      <div class="form-group"><label>Thumbnail URL</label><input id="mf-thumbnail" value="${H(movie?.thumbnail||'')}"></div>
+      <div class="form-group"><label>Video URL</label><input id="mf-video" value="${H(movie?.videoUrl||'')}" placeholder="YouTube embed URL"></div>
+      <div class="form-group"><label>Duration (sec)</label><input type="number" id="mf-duration" value="${movie?.duration||0}"></div>
+      <div class="form-group"><label>Region</label><select id="mf-region">
+        ${['hollywood','bollywood','south','anime','bengali'].map(r => `<option value="${r}" ${movie?.region===r?'selected':''}>${r.charAt(0).toUpperCase()+r.slice(1)}</option>`).join('')}
+      </select></div>
+      <div class="form-group"><label>Category</label><input id="mf-category" value="${H(movie?.category||'')}" placeholder="Action, Drama, etc."></div>
+      <div class="form-group" style="grid-column:1/-1"><label>Description</label><textarea id="mf-desc" rows="2">${H(movie?.description||'')}</textarea></div>
+      <div style="grid-column:1/-1;display:flex;gap:8px">
+        <button type="submit" class="btn btn-green">${movie?'Update Movie':'Add Movie'}</button>
+        <button type="button" class="btn btn-ghost" onclick="document.getElementById('admin-movie-form').classList.add('hidden')">Cancel</button>
+      </div>
+    </form>
+  `;
+}
+
+async function handleMovieSave(e) {
+  e.preventDefault();
+  const g = (id) => document.getElementById(id).value;
+  const data = {
+    title: g('mf-title'),
+    slug: g('mf-slug'),
+    thumbnail: g('mf-thumbnail'),
+    videoUrl: g('mf-video'),
+    duration: parseInt(g('mf-duration')) || 0,
+    region: g('mf-region'),
+    category: g('mf-category'),
+    description: g('mf-desc'),
+  };
+  try {
+    if (adminEditId) {
+      await A.movies.update(adminEditId, data);
+    } else {
+      await A.movies.create(data);
+    }
+    document.getElementById('admin-movie-form').classList.add('hidden');
+    adminEditId = null;
+    loadAdminMovies();
+  } catch (err) { alert(err.message); }
+}
+
+function editMovie(id, jsonStr) {
+  const movie = JSON.parse(jsonStr);
+  adminEditId = id;
+  showMovieForm(movie);
+  document.getElementById('admin-movie-form').classList.remove('hidden');
+  window.scrollTo({ top: document.getElementById('admin-movie-form').offsetTop - 100, behavior: 'smooth' });
+}
+
+async function deleteMovie(id) {
+  if (!confirm('Delete this movie?')) return;
+  try { await A.movies.delete(id); loadAdminMovies(); } catch (err) { alert(err.message); }
+}
+
+// ── PREMIUM ──
+function renderPremium(el) {
+  const plans = [
+    { name: 'Premium Monthly', price: '$9.99', period: '/month', plan: 'premium_monthly', features: ['Ad-free streaming','Full HD quality','Early access to new releases','Download for offline viewing','Priority support'], popular: false },
+    { name: 'Premium Yearly', price: '$89.99', period: '/year', plan: 'premium_yearly', features: ['Everything in Monthly','Save 25%','Exclusive content','2 months free','VIP badge'], popular: true },
+  ];
+  const isPremium = user?.role === 'premium' || user?.role === 'superadmin';
+  el.innerHTML = `
+    <div class="container">
+      <div style="text-align:center;margin-bottom:48px">
+        <h1 style="font-size:2.5rem;font-weight:800;margin-bottom:12px">Upgrade to Premium</h1>
+        <p style="color:#888;font-size:1.125rem;max-width:480px;margin:0 auto">
+          Unlock the full CINEWORLD experience — ad-free, HD streaming, early access, and more.
+        </p>
+        ${isPremium ? '<div style="margin-top:24px;display:inline-block;background:rgba(34,197,94,.2);color:#4ade80;padding:8px 24px;border-radius:9999px;font-weight:700">You\'re a Premium Member</div>' : ''}
+      </div>
+      <div class="plans">
+        ${plans.map(p => `
+          <div class="plan-card ${p.popular?'popular':''}">
+            ${p.popular ? '<div class="plan-badge">Most Popular</div>' : ''}
+            <div class="plan-name">${p.name}</div>
+            <div class="plan-price">${p.price}<span style="font-size:1rem;font-weight:400;color:#888">${p.period}</span></div>
+            <ul class="plan-features">
+              ${p.features.map(f => `<li>${f}</li>`).join('')}
+            </ul>
+            <button class="btn ${p.popular?'btn-red':'btn-outline'}" style="width:100%;padding:14px"
+              ${isPremium?'disabled':''}
+              onclick="${isPremium?'':'handleSubscribe(\`'+p.plan+'\`)'}">
+              ${isPremium ? 'Current Plan' : 'Subscribe'}
+            </button>
+          </div>
+        `).join('')}
+      </div>
+      ${!user ? '<p style="text-align:center;color:#666;margin-top:32px">Already have an account? <a href="#/login" style="color:#e50914">Sign in</a> to upgrade.</p>' : ''}
+    </div>
+  `;
+}
+
+async function handleSubscribe(plan) {
+  if (!user) { window.location.hash = '/login'; return; }
+  try {
+    const d = await A.stripe.checkout(plan);
+    window.location.href = d.url;
+  } catch (e) {
+    alert('Stripe error: ' + e.message);
+  }
+}
+
+// ═══════════════════ Init ═══════════════════
+window.addEventListener('hashchange', route);
+window.addEventListener('load', async () => {
+  await loadUser();
+  route();
+});
+</script>
+</body>
+</html>

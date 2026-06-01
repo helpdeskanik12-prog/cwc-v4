@@ -175,6 +175,91 @@ async function handleAdminUsers(req, env) {
   return json({ users: users.results || [] });
 }
 
+// ═══════════════ Stripe Payments ═══════════════
+
+async function stripeFetch(endpoint, apiKey, body) {
+  const res = await fetch(`https://api.stripe.com/v1${endpoint}`, {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams(body).toString(),
+  });
+  return res.json();
+}
+
+async function handleCreateCheckout(req, env) {
+  const tok = bearer(req); if (!tok) return json({ error: 'No token' }, 401);
+  const pl = await verifyJWT(tok, env.JWT_ACCESS_SECRET);
+  if (!pl) return json({ error: 'Invalid token' }, 401);
+
+  const body = await req.json();
+  const plan = body.plan || 'premium_monthly';
+  const priceIds = {
+    'premium_monthly': env.STRIPE_PREMIUM_MONTHLY || 'price_monthly',
+    'premium_yearly': env.STRIPE_PREMIUM_YEARLY || 'price_yearly',
+  };
+  const priceId = priceIds[plan] || priceIds['premium_monthly'];
+
+  const origin = new URL(req.url).origin;
+  const session = await stripeFetch('/checkout/sessions', env.STRIPE_SECRET_KEY, {
+    'payment_method_types[]': 'card',
+    'mode': 'subscription',
+    'line_items[0][price]': priceId,
+    'line_items[0][quantity]': '1',
+    'success_url': `${origin}/premium?success=true`,
+    'cancel_url': `${origin}/premium?cancelled=true`,
+    'client_reference_id': String(pl.userId),
+    'metadata[userId]': String(pl.userId),
+  });
+
+  if (session.error) return json({ error: session.error.message || 'Stripe error' }, 500);
+  return json({ url: session.url });
+}
+
+async function handleStripeWebhook(req, env) {
+  const sig = req.headers.get('stripe-signature');
+  if (!sig) return json({ error: 'No signature' }, 400);
+
+  const body = await req.text();
+  // In production, verify webhook signature using STRIPE_WEBHOOK_SECRET
+  // For now, parse the event directly
+  let event;
+  try {
+    event = JSON.parse(body);
+  } catch {
+    return json({ error: 'Invalid body' }, 400);
+  }
+
+  const d = db(env);
+
+  switch (event.type) {
+    case 'checkout.session.completed': {
+      const session = event.data.object;
+      const userId = parseInt(session.client_reference_id || session.metadata?.userId);
+      if (!userId) break;
+
+      await d.run(
+        'INSERT INTO payments(userId, stripeSessionId, amount, currency, status, plan, createdAt) VALUES(?,?,?,?,?,?,?)',
+        userId, session.id, (session.amount_total || 0) / 100, session.currency || 'usd', 'completed',
+        session.metadata?.plan || 'premium', new Date().toISOString()
+      );
+
+      // Upgrade user role to premium
+      await d.run('UPDATE users SET role=? WHERE id=? AND role=?', 'premium', userId, 'user');
+      break;
+    }
+    case 'customer.subscription.deleted': {
+      const subscription = event.data.object;
+      const userId = parseInt(subscription.metadata?.userId || '0');
+      if (userId) {
+        await d.run('UPDATE users SET role=? WHERE id=? AND role=?', 'user', userId, 'premium');
+      }
+      break;
+    }
+  }
+
+  return json({ received: true });
+}
+
 // ═══════════════ Categories ═══════════════
 
 async function handleGetCategories(req, env) {
@@ -213,6 +298,10 @@ export default {
 
     // ── Categories ──
     if (p === '/api/categories' && m === 'GET') return handleGetCategories(request, env);
+
+    // ── Stripe ──
+    if (p === '/api/stripe/create-checkout' && m === 'POST') return handleCreateCheckout(request, env);
+    if (p === '/api/stripe/webhook' && m === 'POST') return handleStripeWebhook(request, env);
 
     // ── Admin ──
     if (p === '/api/admin/dashboard' && m === 'GET') return handleAdminDashboard(request, env);

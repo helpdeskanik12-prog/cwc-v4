@@ -3,7 +3,22 @@
   "compatibility_date": "2026-06-01",
   "main": "./_worker.js",
   "assets": {
-    "directory": "./out",
+    "directory": "./public",
     "binding": "ASSETS"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "cwc-db",
+      "database_id": ""
+    }
+  ],
+  "vars": {
+    "JWT_ACCESS_SECRET": "",
+    "JWT_REFRESH_SECRET": "",
+    "STRIPE_SECRET_KEY": "",
+    "STRIPE_WEBHOOK_SECRET": "",
+    "STRIPE_PREMIUM_MONTHLY": "",
+    "STRIPE_PREMIUM_YEARLY": ""
   }
 }
